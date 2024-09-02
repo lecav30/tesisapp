@@ -1,0 +1,5 @@
+Transaction
+3
+id INTEGER true true
+amount FLOAT false false
+date DATE false false

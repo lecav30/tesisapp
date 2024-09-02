@@ -1,0 +1,15 @@
+const express = require('express');
+const app = express();
+const port = {{ port }};
+
+app.use(express.json());
+
+{% for route in routes %}
+app.{{ route.method }}('{{ route.path }}', (req, res) => {
+    res.send('{{ route.response }}');
+});
+{% endfor %}
+
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
