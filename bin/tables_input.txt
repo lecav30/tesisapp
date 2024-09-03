@@ -1,5 +1,25 @@
-Transaction
+2
+users
 3
-id INTEGER true true
-amount FLOAT false false
-date DATE false false
+id
+INT
+1
+1
+name
+VARCHAR(255)
+0
+0
+email
+VARCHAR(255)
+0
+0
+products
+2
+id
+INT
+1
+1
+name
+VARCHAR(255)
+0
+0

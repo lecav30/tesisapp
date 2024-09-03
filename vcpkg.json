@@ -1,0 +1,10 @@
+{
+    "name": "tesisapp",
+    "version": "1.0.0",
+    "dependencies": [
+        "fmt",
+        "inja",
+        "nlohmann-json",
+        "mysql-connector-cpp"
+    ]
+}
