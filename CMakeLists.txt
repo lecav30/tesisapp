@@ -2,13 +2,16 @@ cmake_minimum_required(VERSION 3.5.0)
 project(TesisApp VERSION 0.1.0 LANGUAGES CXX)
 
 # Set the C++ standard
+set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 set(CMAKE_CXX_STANDARD 17)
+set(VCPKG_MANIFEST_MODE ON)
 
 # Include directories
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/include "${CMAKE_SOURCE_DIR}/vcpkg/installed/arm64-osx/include")
+link_directories("${CMAKE_SOURCE_DIR}/vcpkg/installed/arm64-osx/lib")
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
-set(VCPKG_MANIFEST_MODE ON)
+find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+find_library(RESOLV_LIBRARY resolv)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(inja CONFIG REQUIRED)
@@ -26,4 +29,4 @@ set_target_properties(TesisApp PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
 
-target_link_libraries(TesisApp PRIVATE fmt::fmt pantor::inja unofficial::mysql-connector-cpp::connector)
+target_link_libraries(TesisApp PRIVATE ${COREFOUNDATION_LIBRARY} ${RESOLV_LIBRARY} fmt::fmt pantor::inja unofficial::mysql-connector-cpp::connector)

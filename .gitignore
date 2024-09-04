@@ -71,3 +71,5 @@ CMakeUserPresets.json
 .ionide
 
 vcpkg/
+build/
+bin/

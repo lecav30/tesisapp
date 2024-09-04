@@ -22,6 +22,8 @@ Para poder compilar este proyecto, necesitas instalar `vcpkg`. Sigue estos pasos
 
 ## Correr el proyecto
 
-`cmake -B build -S .`
+`cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake`
 
-`cmake --build build`
+`cd build`
+
+`make`
