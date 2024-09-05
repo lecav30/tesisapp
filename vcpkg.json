@@ -2,6 +2,7 @@
   "name": "tesisapp",
   "version": "1.0.0",
   "dependencies": [
+    "boost-algorithm",
     "fmt",
     "inja",
     "mysql-connector-cpp"

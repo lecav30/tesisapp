@@ -1,0 +1,20 @@
+2
+product
+3
+name
+VARCHAR(255)
+NOT NULL
+amount
+INT
+NOT NULL
+expired_date
+VARCHAR(255)
+NOT NULL
+store
+2
+name
+VARCHAR(255)
+NOT NULL
+address
+VARCHAR(255)
+NOT NULL

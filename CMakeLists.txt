@@ -7,8 +7,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(VCPKG_MANIFEST_MODE ON)
 
 # Include directories
-include_directories(${CMAKE_SOURCE_DIR}/include "${CMAKE_SOURCE_DIR}/vcpkg/installed/arm64-osx/include")
-link_directories("${CMAKE_SOURCE_DIR}/vcpkg/installed/arm64-osx/lib")
+include_directories(${CMAKE_SOURCE_DIR}/include)
+# include_directories(${CMAKE_SOURCE_DIR}/include "${CMAKE_SOURCE_DIR}/vcpkg/installed/arm64-osx/include")
+# link_directories("${CMAKE_SOURCE_DIR}/vcpkg/installed/arm64-osx/lib")
 
 find_library(COREFOUNDATION_LIBRARY CoreFoundation)
 find_library(RESOLV_LIBRARY resolv)
@@ -16,6 +17,7 @@ find_library(RESOLV_LIBRARY resolv)
 find_package(fmt CONFIG REQUIRED)
 find_package(inja CONFIG REQUIRED)
 find_package(unofficial-mysql-connector-cpp CONFIG REQUIRED)
+find_package(boost_algorithm CONFIG REQUIRED)
 
 # Source files
 file(GLOB_RECURSE SOURCES "src/*.cpp")
@@ -29,4 +31,4 @@ set_target_properties(TesisApp PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
 
-target_link_libraries(TesisApp PRIVATE ${COREFOUNDATION_LIBRARY} ${RESOLV_LIBRARY} fmt::fmt pantor::inja unofficial::mysql-connector-cpp::connector)
+target_link_libraries(TesisApp PRIVATE ${COREFOUNDATION_LIBRARY} ${RESOLV_LIBRARY} fmt::fmt pantor::inja unofficial::mysql-connector-cpp::connector Boost::algorithm)
