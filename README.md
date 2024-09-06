@@ -37,10 +37,14 @@ Para poder compilar este proyecto, necesitas instalar `vcpkg`. Sigue estos pasos
    cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="./vcpkg/scripts/buildsystems/vcpkg.cmake"
    ```
 3. Ejecuta el comando para construir el proyecto
-   - MACOS
+   - MACOS first method
    ```sh
    cd build
    make
+   ```
+   - MACOS second method
+   ```sh
+   cmake --build build/
    ```
 
    - Windows first method

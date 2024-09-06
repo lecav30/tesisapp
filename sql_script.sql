@@ -1,8 +1,8 @@
-{% for table in tables %}
-CREATE TABLE {{ table.name }} (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    {% for column in table.columns %}
-    {{ column.name }} {{ column.type }}{% if not loop.is_last %},{% endif %}
+DROP TABLE IF EXISTS {{ name }};
+CREATE TABLE {{ name }} (
+    {{ name }}_id INT NOT NULL AUTO_INCREMENT,
+    {% for column in columns %}
+    {{ column.name }} {{ column.type }} {{ column.null }},
     {% endfor %}
+    PRIMARY KEY ({{ name }}_id)
 );
-{% endfor %}

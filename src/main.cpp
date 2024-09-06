@@ -1,4 +1,5 @@
 #include <mysqlx/xdevapi.h>
+
 #include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <inja/inja.hpp>
@@ -26,7 +27,7 @@ struct Table {
 };
 
 // Function to read credentials from a text file
-bool readCredentials(const std::string& filename, Credentials& credentials) {
+bool readCredentials(const std::string &filename, Credentials &credentials) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Unable to open file: " << filename << std::endl;
@@ -42,27 +43,29 @@ bool readCredentials(const std::string& filename, Credentials& credentials) {
 }
 
 // Function to connect to the database using X DevAPI
-bool connectToDatabase(const Credentials& credentials) {
+bool connectToDatabase(const Credentials &credentials) {
     try {
-        mysqlx::Session session("localhost", 33060, credentials.user, credentials.password);
+        mysqlx::Session session("localhost", 33060, credentials.user,
+                                credentials.password);
         mysqlx::Schema schema = session.getSchema(credentials.dbname);
 
         std::cout << "Connected to database successfully!" << std::endl;
         return true;
-    } catch (const mysqlx::Error& err) {
+    } catch (const mysqlx::Error &err) {
         std::cerr << "Error: " << err.what() << std::endl;
         return false;
-    } catch (std::exception& ex) {
+    } catch (std::exception &ex) {
         std::cerr << "STD Exception: " << ex.what() << std::endl;
         return false;
-    } catch (const char* ex) {
+    } catch (const char *ex) {
         std::cerr << "Exception: " << ex << std::endl;
         return false;
     }
 }
 
 // Function to read the schema of the database
-bool readDatabaseSchema(const std::string& filename, std::vector<Table>& tables) {
+bool readDatabaseSchema(const std::string &filename,
+                        std::vector<Table> &tables) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Unable to open file: " << filename << std::endl;
@@ -91,10 +94,11 @@ bool readDatabaseSchema(const std::string& filename, std::vector<Table>& tables)
     }
 
     // Print the tables and their columns
-    for (const auto& table : tables) {
+    for (const auto &table : tables) {
         std::cout << "Table: " << table.name << std::endl;
-        for (const auto& column : table.columns) {
-            std::cout << "  Column: " << column.name << " (" << column.type << ", " << column.null << ")" << std::endl;
+        for (const auto &column : table.columns) {
+            std::cout << "  Column: " << column.name << " (" << column.type
+                      << ", " << column.null << ")" << std::endl;
         }
     }
 
@@ -103,7 +107,7 @@ bool readDatabaseSchema(const std::string& filename, std::vector<Table>& tables)
 }
 
 // Función para dividir las sentencias SQL en partes individuales
-std::vector<std::string> splitSqlStatements(const std::string& sqlStatements) {
+std::vector<std::string> splitSqlStatements(const std::string &sqlStatements) {
     std::vector<std::string> statements;
     std::istringstream stream(sqlStatements);
     std::string statement;
@@ -119,36 +123,42 @@ std::vector<std::string> splitSqlStatements(const std::string& sqlStatements) {
 }
 
 // Function to create the database and tables
-bool createDatabase(const Credentials& credentials, const std::vector<Table>& tables) {
+bool createDatabase(const Credentials &credentials,
+                    const std::vector<Table> &tables) {
     try {
-        mysqlx::Session session("localhost", 33060, credentials.user, credentials.password, credentials.dbname);
-        // mysqlx::Schema schema = session.createSchema(credentials.dbname, true);
+        mysqlx::Session session("localhost", 33060, credentials.user,
+                                credentials.password, credentials.dbname);
 
         inja::Environment env;
         env.set_trim_blocks(true);
         env.set_lstrip_blocks(true);
 
-        std::string templateString = R"(
-        DROP TABLE IF EXISTS {{ name }};
-        CREATE TABLE {{ name }} (
-            {{ name }}_id INT NOT NULL AUTO_INCREMENT,
-            {% for column in columns %}
-            {{ column.name }} {{ column.type }} {{ column.null }},
-            {% endfor %}
-            PRIMARY KEY ({{ name }}_id)
-        );
-        )";
+        // Leer la plantilla desde el archivo
+        std::ifstream template_file("./sql_script.sql");
+        if (!template_file.is_open()) {
+            std::cerr << "Error: No se pudo abrir el archivo de plantilla "
+                         "'slq_script.sql'"
+                      << std::endl;
+        }
+        std::string templateString(
+            (std::istreambuf_iterator<char>(template_file)),
+            std::istreambuf_iterator<char>());
+        if (templateString.empty()) {
+            std::cerr << "Error: La plantilla está vacía o no se pudo leer "
+                         "correctamente"
+                      << std::endl;
+        }
 
         std::string sqlStatements = "";
 
         auto tablesToJson = [&tables]() {
             inja::json tablesJson = inja::json::array();
-            for (const Table& table : tables) {
+            for (const Table &table : tables) {
                 inja::json tableJson;
                 tableJson["name"] = table.name;
                 std::cout << "Table: " << table.name << std::endl;
                 inja::json columnsJson = inja::json::array();
-                for (const Column& column : table.columns) {
+                for (const Column &column : table.columns) {
                     inja::json columnJson;
                     columnJson["name"] = column.name;
                     columnJson["type"] = column.type;
@@ -163,7 +173,7 @@ bool createDatabase(const Credentials& credentials, const std::vector<Table>& ta
 
         inja::json tablesJson = tablesToJson();
 
-        for (const auto& tableJson : tablesJson) {
+        for (const auto &tableJson : tablesJson) {
             sqlStatements += env.render(templateString, tableJson);
         }
 
@@ -175,31 +185,31 @@ bool createDatabase(const Credentials& credentials, const std::vector<Table>& ta
         // Execute SQL statements
         try {
             // Ejecutar cada sentencia individualmente
-            for (const auto& statement : statements) {
+            for (const auto &statement : statements) {
                 session.sql(statement).execute();
                 // std::cout << statement << std::endl;
             }
             std::cout << "Tables created successfully!" << std::endl;
             return true;
-        } catch (const mysqlx::Error& err) {
+        } catch (const mysqlx::Error &err) {
             std::cerr << "Error: " << err.what() << std::endl;
             return false;
-        } catch (std::exception& ex) {
+        } catch (std::exception &ex) {
             std::cerr << "STD Exception: " << ex.what() << std::endl;
             return false;
-        } catch (const char* ex) {
+        } catch (const char *ex) {
             std::cerr << "Exception: " << ex << std::endl;
             return false;
         }
 
         return true;
-    } catch (const mysqlx::Error& err) {
+    } catch (const mysqlx::Error &err) {
         std::cerr << "Error: " << err.what() << std::endl;
         return false;
-    } catch (std::exception& ex) {
+    } catch (std::exception &ex) {
         std::cerr << "STD Exception: " << ex.what() << std::endl;
         return false;
-    } catch (const char* ex) {
+    } catch (const char *ex) {
         std::cerr << "Exception: " << ex << std::endl;
         return false;
     }
