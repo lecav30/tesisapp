@@ -12,8 +12,8 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # link_directories("${CMAKE_SOURCE_DIR}/vcpkg/installed/arm64-osx/lib")
 
 # Comment in Windows, just for MACOS
-# find_library(COREFOUNDATION_LIBRARY CoreFoundation)
-# find_library(RESOLV_LIBRARY resolv)
+find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+find_library(RESOLV_LIBRARY resolv)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(inja CONFIG REQUIRED)
@@ -33,5 +33,5 @@ set_target_properties(TesisApp PROPERTIES
 )
 
 # Comment in Windows, just for MACOS
-# target_link_libraries(TesisApp PRIVATE ${COREFOUNDATION_LIBRARY} ${RESOLV_LIBRARY})
+target_link_libraries(TesisApp PRIVATE ${COREFOUNDATION_LIBRARY} ${RESOLV_LIBRARY})
 target_link_libraries(TesisApp PRIVATE fmt::fmt pantor::inja unofficial::mysql-connector-cpp::connector Boost::algorithm)

@@ -1,20 +1,22 @@
 2
-product
-3
-name
-VARCHAR(255)
-NOT NULL
-amount
-INT
-NOT NULL
-expired_date
-VARCHAR(255)
-NOT NULL
-store
+person
 2
 name
 VARCHAR(255)
 NOT NULL
-address
-VARCHAR(255)
+false
+age
+INT
 NOT NULL
+false
+orders
+2
+order_number
+INT
+NOT NULL
+false
+person_id
+INT
+NOT NULL
+true
+person

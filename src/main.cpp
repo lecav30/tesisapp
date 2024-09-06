@@ -18,6 +18,8 @@ struct Column {
     std::string name;
     std::string type;
     std::string null;
+    bool isForeignKey;
+    std::string foreignKeyTable;
 };
 
 // Structure to hold table information
@@ -87,6 +89,14 @@ bool readDatabaseSchema(const std::string &filename,
             std::getline(file, column.name);
             std::getline(file, column.type);
             std::getline(file, column.null);
+            std::string temp;
+            std::getline(file, temp);
+            column.isForeignKey = temp == "true";
+            if (column.isForeignKey) {
+                std::getline(file, column.foreignKeyTable);
+            } else {
+                column.foreignKeyTable = "";
+            }
             table.columns.push_back(column);
         }
 
@@ -99,6 +109,10 @@ bool readDatabaseSchema(const std::string &filename,
         for (const auto &column : table.columns) {
             std::cout << "  Column: " << column.name << " (" << column.type
                       << ", " << column.null << ")" << std::endl;
+            if (column.isForeignKey) {
+                std::cout << "    Foreign Key: " << column.foreignKeyTable
+                          << std::endl;
+            }
         }
     }
 
@@ -158,14 +172,24 @@ bool createDatabase(const Credentials &credentials,
                 tableJson["name"] = table.name;
                 std::cout << "Table: " << table.name << std::endl;
                 inja::json columnsJson = inja::json::array();
+                inja::json foreignKeysJson = inja::json::array();
                 for (const Column &column : table.columns) {
                     inja::json columnJson;
                     columnJson["name"] = column.name;
                     columnJson["type"] = column.type;
-                    columnJson["null"] = column.null;
+                    if (column.isForeignKey) {
+                        columnJson["null"] = "";
+                        inja::json foreignColumnJson;
+                        foreignColumnJson["name"] = column.name;
+                        foreignColumnJson["table"] = column.foreignKeyTable;
+                        foreignKeysJson.push_back(foreignColumnJson);
+                    } else {
+                        columnJson["null"] = column.null;
+                    }
                     columnsJson.push_back(columnJson);
                 }
                 tableJson["columns"] = columnsJson;
+                tableJson["foreign_keys"] = foreignKeysJson;
                 tablesJson.push_back(tableJson);
             }
             return tablesJson;
