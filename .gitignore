@@ -73,4 +73,5 @@ CMakeUserPresets.json
 vcpkg/
 build/
 bin/
+output/
 credentials.txt

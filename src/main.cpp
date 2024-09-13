@@ -1,6 +1,6 @@
+#include <fmt/core.h>
 #include <mysqlx/xdevapi.h>
 
-#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <inja/inja.hpp>
 #include <iostream>
@@ -17,9 +17,8 @@ struct Credentials {
 struct Column {
     std::string name;
     std::string type;
-    std::string null;
-    bool isForeignKey;
-    std::string foreignKeyTable;
+    bool isNull;
+    bool isUnique;
 };
 
 // Structure to hold table information
@@ -86,17 +85,13 @@ bool readDatabaseSchema(const std::string &filename,
 
         for (int j = 0; j < std::stoi(amountOfColumns); j++) {
             Column column;
+            std::string tempStr;
             std::getline(file, column.name);
             std::getline(file, column.type);
-            std::getline(file, column.null);
-            std::string temp;
-            std::getline(file, temp);
-            column.isForeignKey = temp == "true";
-            if (column.isForeignKey) {
-                std::getline(file, column.foreignKeyTable);
-            } else {
-                column.foreignKeyTable = "";
-            }
+            std::getline(file, tempStr);
+            column.isNull = tempStr == "true";
+            std::getline(file, tempStr);
+            column.isUnique = tempStr == "true";
             table.columns.push_back(column);
         }
 
@@ -107,12 +102,10 @@ bool readDatabaseSchema(const std::string &filename,
     for (const auto &table : tables) {
         std::cout << "Table: " << table.name << std::endl;
         for (const auto &column : table.columns) {
-            std::cout << "  Column: " << column.name << " (" << column.type
-                      << ", " << column.null << ")" << std::endl;
-            if (column.isForeignKey) {
-                std::cout << "    Foreign Key: " << column.foreignKeyTable
-                          << std::endl;
-            }
+            std::cout << "  Column: " << column.name << " - " << column.type
+                      << ", " << (column.isNull ? "NULL" : "NOT NULL") << ", "
+                      << (column.isUnique ? "UNIQUE" : "NOT UNIQUE")
+                      << std::endl;
         }
     }
 
@@ -120,25 +113,8 @@ bool readDatabaseSchema(const std::string &filename,
     return true;
 }
 
-// Función para dividir las sentencias SQL en partes individuales
-std::vector<std::string> splitSqlStatements(const std::string &sqlStatements) {
-    std::vector<std::string> statements;
-    std::istringstream stream(sqlStatements);
-    std::string statement;
-
-    while (std::getline(stream, statement, ';')) {
-        boost::trim(statement);
-        if (!statement.empty()) {
-            statements.push_back(statement + ";");
-        }
-    }
-
-    return statements;
-}
-
-// Function to create the database and tables
-bool createDatabase(const Credentials &credentials,
-                    const std::vector<Table> &tables) {
+bool createModel(const std::string &filename, Credentials &credentials,
+                 std::vector<Table> &tables) {
     try {
         mysqlx::Session session("localhost", 33060, credentials.user,
                                 credentials.password, credentials.dbname);
@@ -148,10 +124,10 @@ bool createDatabase(const Credentials &credentials,
         env.set_lstrip_blocks(true);
 
         // Leer la plantilla desde el archivo
-        std::ifstream template_file("./sql_script.sql");
+        std::ifstream template_file("./inja_templates/models.inja");
         if (!template_file.is_open()) {
             std::cerr << "Error: No se pudo abrir el archivo de plantilla "
-                         "'slq_script.sql'"
+                         "'models.inja'"
                       << std::endl;
         }
         std::string templateString(
@@ -163,8 +139,6 @@ bool createDatabase(const Credentials &credentials,
                       << std::endl;
         }
 
-        std::string sqlStatements = "";
-
         auto tablesToJson = [&tables]() {
             inja::json tablesJson = inja::json::array();
             for (const Table &table : tables) {
@@ -172,24 +146,15 @@ bool createDatabase(const Credentials &credentials,
                 tableJson["name"] = table.name;
                 std::cout << "Table: " << table.name << std::endl;
                 inja::json columnsJson = inja::json::array();
-                inja::json foreignKeysJson = inja::json::array();
                 for (const Column &column : table.columns) {
-                    inja::json columnJson;
-                    columnJson["name"] = column.name;
-                    columnJson["type"] = column.type;
-                    if (column.isForeignKey) {
-                        columnJson["null"] = "";
-                        inja::json foreignColumnJson;
-                        foreignColumnJson["name"] = column.name;
-                        foreignColumnJson["table"] = column.foreignKeyTable;
-                        foreignKeysJson.push_back(foreignColumnJson);
-                    } else {
-                        columnJson["null"] = column.null;
-                    }
-                    columnsJson.push_back(columnJson);
+                    inja::json colJson;
+                    colJson["name"] = column.name;
+                    colJson["type"] = column.type;
+                    colJson["isNull"] = column.isNull;
+                    colJson["isUnique"] = column.isUnique;
+                    columnsJson.push_back(colJson);
                 }
-                tableJson["columns"] = columnsJson;
-                tableJson["foreign_keys"] = foreignKeysJson;
+                tableJson["fields"] = columnsJson;
                 tablesJson.push_back(tableJson);
             }
             return tablesJson;
@@ -197,36 +162,27 @@ bool createDatabase(const Credentials &credentials,
 
         inja::json tablesJson = tablesToJson();
 
+        // Create files of models for each table
         for (const auto &tableJson : tablesJson) {
-            sqlStatements += env.render(templateString, tableJson);
-        }
+            std::string result = env.render(templateString, tableJson);
 
-        // std::cout << sqlStatements << std::endl;
+            // fmt::print("{}", result);
 
-        // Dividir las sentencias SQL en partes individuales
-        std::vector<std::string> statements = splitSqlStatements(sqlStatements);
-
-        // Execute SQL statements
-        try {
-            // Ejecutar cada sentencia individualmente
-            for (const auto &statement : statements) {
-                session.sql(statement).execute();
-                // std::cout << statement << std::endl;
+            std::ofstream file("./output/"
+                               + tableJson["name"].get<std::string>() + ".js");
+            if (!file.is_open()) {
+                std::cerr << "Error: No se pudo abrir el archivo de salida "
+                             "'output/"
+                                 + tableJson["name"].get<std::string>() + ".js'"
+                          << std::endl;
             }
-            std::cout << "Tables created successfully!" << std::endl;
-            return true;
-        } catch (const mysqlx::Error &err) {
-            std::cerr << "Error: " << err.what() << std::endl;
-            return false;
-        } catch (std::exception &ex) {
-            std::cerr << "STD Exception: " << ex.what() << std::endl;
-            return false;
-        } catch (const char *ex) {
-            std::cerr << "Exception: " << ex << std::endl;
-            return false;
+            file << result;
+            file.close();
+
+            fmt::print("Model for table {} created successfully!\n",
+                       tableJson["name"].get<std::string>());
         }
 
-        return true;
     } catch (const mysqlx::Error &err) {
         std::cerr << "Error: " << err.what() << std::endl;
         return false;
@@ -237,28 +193,34 @@ bool createDatabase(const Credentials &credentials,
         std::cerr << "Exception: " << ex << std::endl;
         return false;
     }
+
+    return true;
 }
 
 int main() {
     // std::string user, password, dbname;
-    std::string credentialsFile = "credentials.txt";
-    std::string schemaFile = "db_data.txt";
+    std::string credentialsFile = "input/credentials.txt";
+    std::string schemaFile = "input/models.txt";
     Credentials credentials;
     std::vector<Table> tables = std::vector<Table>();
 
+    // Request credentials
     if (!readCredentials(credentialsFile, credentials)) {
         return 1;
     }
 
+    // Test credentials
     if (!connectToDatabase(credentials)) {
         return 1;
     }
 
+    // Read database schema from file
     if (!readDatabaseSchema(schemaFile, tables)) {
         return 1;
     }
 
-    if (!createDatabase(credentials, tables)) {
+    // Create models to ExpressJS
+    if (!createModel(schemaFile, credentials, tables)) {
         return 1;
     }
 

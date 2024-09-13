@@ -1,0 +1,12 @@
+const { DataTypes } = require('sequelize');
+
+const {{ name }} = sequelize.define('{{ name }}', {
+  {% for field in fields %}
+  {{ field.name }}: {
+    type: DataTypes.{{ field.type }},
+    allowNull: {{ field.isNull }},
+    unique: {{ field.isUnique }}
+  }{% if loop.is_last %}{% else %},{% endif %}
+
+  {% endfor %}
+});
