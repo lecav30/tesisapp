@@ -1,6 +1,7 @@
 #include <fmt/core.h>
 #include <mysqlx/xdevapi.h>
 
+#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <inja/inja.hpp>
 #include <iostream>
@@ -114,7 +115,7 @@ bool readDatabaseSchema(const std::string &filename,
 }
 
 bool createModel(const std::string &filename, Credentials &credentials,
-                 std::vector<Table> &tables) {
+                 std::vector<Table> &tables, const char *directoryPath) {
     try {
         mysqlx::Session session("localhost", 33060, credentials.user,
                                 credentials.password, credentials.dbname);
@@ -168,11 +169,10 @@ bool createModel(const std::string &filename, Credentials &credentials,
 
             // fmt::print("{}", result);
 
-            std::ofstream file("./output/"
+            std::ofstream file(std::string(directoryPath) + "/models/"
                                + tableJson["name"].get<std::string>() + ".js");
             if (!file.is_open()) {
                 std::cerr << "Error: No se pudo abrir el archivo de salida "
-                             "'output/"
                                  + tableJson["name"].get<std::string>() + ".js'"
                           << std::endl;
             }
@@ -197,12 +197,95 @@ bool createModel(const std::string &filename, Credentials &credentials,
     return true;
 }
 
+bool createController(Credentials &credentials, std::vector<Table> &tables,
+                      const char *directoryPath) {
+    try {
+        mysqlx::Session session("localhost", 33060, credentials.user,
+                                credentials.password, credentials.dbname);
+
+        inja::Environment env;
+        env.set_trim_blocks(true);
+        env.set_lstrip_blocks(true);
+
+        // Leer la plantilla desde el archivo
+        std::ifstream template_file("./inja_templates/controllers.inja");
+        if (!template_file.is_open()) {
+            std::cerr << "Error: No se pudo abrir el archivo de plantilla "
+                         "'controllers.inja'"
+                      << std::endl;
+        }
+        std::string templateString(
+            (std::istreambuf_iterator<char>(template_file)),
+            std::istreambuf_iterator<char>());
+        if (templateString.empty()) {
+            std::cerr << "Error: La plantilla está vacía o no se pudo leer "
+                         "correctamente"
+                      << std::endl;
+        }
+
+        auto tablesToJson = [&tables]() {
+            inja::json tablesJson = inja::json::array();
+            for (const Table &table : tables) {
+                inja::json tableJson;
+                tableJson["name"] = table.name;
+                tableJson["name_const"] = boost::to_lower_copy(table.name);
+                std::cout << "Table: " << table.name << std::endl;
+                inja::json columnsJson = inja::json::array();
+                for (const Column &column : table.columns) {
+                    inja::json colJson;
+                    colJson["name"] = column.name;
+                    columnsJson.push_back(colJson);
+                }
+                tableJson["fields"] = columnsJson;
+                tablesJson.push_back(tableJson);
+            }
+            return tablesJson;
+        };
+
+        inja::json tablesJson = tablesToJson();
+
+        // Create files of models for each table
+        for (const auto &tableJson : tablesJson) {
+            std::string result = env.render(templateString, tableJson);
+
+            // fmt::print("{}", result);
+
+            std::ofstream file(std::string(directoryPath) + "/controllers/"
+                               + tableJson["name"].get<std::string>() + "Controller.js");
+            if (!file.is_open()) {
+                std::cerr << "Error: No se pudo abrir el archivo de salida "
+                                 + tableJson["name"].get<std::string>() + "Controller.js'"
+                          << std::endl;
+            }
+            file << result;
+            file.close();
+
+            fmt::print("Controller for table {} created successfully!\n",
+                       tableJson["name"].get<std::string>());
+        }
+
+    } catch (const mysqlx::Error &err) {
+        std::cerr << "Error: " << err.what() << std::endl;
+        return false;
+    } catch (std::exception &ex) {
+        std::cerr << "STD Exception: " << ex.what() << std::endl;
+        return false;
+    } catch (const char *ex) {
+        std::cerr << "Exception: " << ex << std::endl;
+        return false;
+    }
+    return true;
+}
+
 int main() {
     // std::string user, password, dbname;
     std::string credentialsFile = "input/credentials.txt";
     std::string schemaFile = "input/models.txt";
     Credentials credentials;
     std::vector<Table> tables = std::vector<Table>();
+
+    // Request directory
+    const char *directoryPath = "/Users/lecav/Programs/Tesis/test-backend";
 
     // Request credentials
     if (!readCredentials(credentialsFile, credentials)) {
@@ -220,7 +303,12 @@ int main() {
     }
 
     // Create models to ExpressJS
-    if (!createModel(schemaFile, credentials, tables)) {
+    if (!createModel(schemaFile, credentials, tables, directoryPath)) {
+        return 1;
+    }
+
+    // Create controllers to ExpressJS
+    if (!createController(credentials, tables, directoryPath)) {
         return 1;
     }
 
