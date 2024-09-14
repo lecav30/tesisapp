@@ -114,7 +114,7 @@ bool readDatabaseSchema(const std::string &filename,
     return true;
 }
 
-bool createModel(const std::string &filename,
+bool createModel(const std::string &filename, Credentials &credentials,
                  std::vector<Table> &tables, const char *directoryPath) {
     try {
         inja::Environment env;
@@ -136,11 +136,27 @@ bool createModel(const std::string &filename,
                          "correctamente"
                       << std::endl;
         }
+        std::ifstream templateIndex_file("./inja_templates/modelsIndex.inja");
+        if (!templateIndex_file.is_open()) {
+            std::cerr << "Error: No se pudo abrir el archivo de plantilla "
+                         "'modelsIndex.inja'"
+                      << std::endl;
+        }
+        std::string templateIndexString(
+            (std::istreambuf_iterator<char>(templateIndex_file)),
+            std::istreambuf_iterator<char>());
+        if (templateIndexString.empty()) {
+            std::cerr << "Error: La plantilla está vacía o no se pudo leer "
+                         "correctamente"
+                      << std::endl;
+        }
 
-        auto tablesToJson = [&tables]() {
-            inja::json tablesJson = inja::json::array();
+        auto tablesToJson = [&tables, &credentials]() {
+            inja::json tablesJson;
 
             fmt::print("Creating models...\n");
+
+            inja::json tempArray = inja::json::array();
 
             for (const Table &table : tables) {
                 inja::json tableJson;
@@ -156,18 +172,29 @@ bool createModel(const std::string &filename,
                     columnsJson.push_back(colJson);
                 }
                 tableJson["fields"] = columnsJson;
-                tablesJson.push_back(tableJson);
+                tempArray.push_back(tableJson);
             }
+            
+            tablesJson["tables"] = tempArray;
+
+            fmt::print("Creating model index...\n");
+
+            inja::json credentialsJson;
+
+            credentialsJson["dbname"] = credentials.dbname;
+            credentialsJson["user"] = credentials.user;
+            credentialsJson["password"] = credentials.password;
+
+            tablesJson["credentials"] = credentialsJson;
+
             return tablesJson;
         };
 
         inja::json tablesJson = tablesToJson();
 
         // Create files of models for each table
-        for (const auto &tableJson : tablesJson) {
+        for (const auto &tableJson : tablesJson["tables"]) {
             std::string result = env.render(templateString, tableJson);
-
-            // fmt::print("{}", result);
 
             std::ofstream file(std::string(directoryPath) + "/models/"
                                + tableJson["name_const"].get<std::string>() + ".js");
@@ -182,6 +209,19 @@ bool createModel(const std::string &filename,
             fmt::print("Model for table {} created successfully!\n",
                        tableJson["name"].get<std::string>());
         }
+
+        // Index
+        std::string indexResult = env.render(templateIndexString, tablesJson);
+
+        std::ofstream file(std::string(directoryPath) + "/models/index.js");
+        if (!file.is_open()) {
+            std::cerr << "Error: No se pudo abrir el archivo de salida 'index.js'"
+                      << std::endl;
+        }
+        file << indexResult;
+        file.close();
+        fmt::print("Index Model created successfully!\n");
+
     } catch (std::exception &ex) {
         std::cerr << "STD Exception: " << ex.what() << std::endl;
         return false;
@@ -280,25 +320,44 @@ bool createRoute(std::vector<Table> &tables, const char *directoryPath) {
         if (templateString.empty()) {
             fmt::print("Error: La plantilla está vacía o no se pudo leer correctamente\n");
         }
+        std::ifstream templateIndex_file("./inja_templates/routesIndex.inja");
+        if (!templateIndex_file.is_open()) {
+            std::cerr << "Error: No se pudo abrir el archivo de plantilla "
+                         "'routesIndex.inja'"
+                      << std::endl;
+        }
+        std::string templateIndexString(
+            (std::istreambuf_iterator<char>(templateIndex_file)),
+            std::istreambuf_iterator<char>());
+        if (templateIndexString.empty()) {
+            std::cerr << "Error: La plantilla está vacía o no se pudo leer "
+                         "correctamente"
+                      << std::endl;
+        }
 
         auto tablesToJson = [&tables]() {
-            inja::json tablesJson = inja::json::array();
+            inja::json tablesJson;
 
             fmt::print("Creating routes...\n");
+
+            inja::json tempArray = inja::json::array();
 
             for (const Table &table : tables) {
                 inja::json tableJson;
                 tableJson["name"] = table.name;
                 tableJson["name_const"] = boost::to_lower_copy(table.name);
-                tablesJson.push_back(tableJson);
+                tempArray.push_back(tableJson);
             }
+
+            tablesJson["tables"] = tempArray;
+
             return tablesJson;
         };
 
         inja::json tablesJson = tablesToJson();
 
         // Create files of models for each table
-        for (const auto &tableJson : tablesJson) {
+        for (const auto &tableJson : tablesJson["tables"]) {
             std::string result = env.render(templateString, tableJson);
 
             // fmt::print("{}", result);
@@ -316,6 +375,19 @@ bool createRoute(std::vector<Table> &tables, const char *directoryPath) {
             fmt::print("Route for table {} created successfully!\n",
                        tableJson["name"].get<std::string>());
         }
+
+        // Index
+        std::string indexResult = env.render(templateIndexString, tablesJson);
+
+        std::ofstream file(std::string(directoryPath) + "/routes/index.js");
+        if (!file.is_open()) {
+            std::cerr << "Error: No se pudo abrir el archivo de salida 'index.js'"
+                      << std::endl;
+        }
+        file << indexResult;
+        file.close();
+        fmt::print("Index Route created successfully!\n");
+
     } catch (std::exception &ex) {
         std::cerr << "STD Exception: " << ex.what() << std::endl;
         return false;
@@ -337,15 +409,15 @@ int main() {
     // const char *directoryPath = "/Users/lecav/Programs/Tesis/test-backend";
     const char *directoryPath = "G:/programs/test-backend";
 
-    // // Request credentials
-    // if (!readCredentials(credentialsFile, credentials)) {
-    //     return 1;
-    // }
+    // Request credentials
+    if (!readCredentials(credentialsFile, credentials)) {
+        return 1;
+    }
 
-    // // Test credentials
-    // if (!connectToDatabase(credentials)) {
-    //     return 1;
-    // }
+    // Test credentials
+    if (!connectToDatabase(credentials)) {
+        return 1;
+    }
 
     // Read database schema from file
     if (!readDatabaseSchema(schemaFile, tables)) {
@@ -353,7 +425,7 @@ int main() {
     }
 
     // Create models to ExpressJS
-    if (!createModel(schemaFile, tables, directoryPath)) {
+    if (!createModel(schemaFile, credentials, tables, directoryPath)) {
         return 1;
     }
 
