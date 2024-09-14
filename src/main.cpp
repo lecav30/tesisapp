@@ -174,7 +174,7 @@ bool createModel(const std::string &filename, Credentials &credentials,
                 tableJson["fields"] = columnsJson;
                 tempArray.push_back(tableJson);
             }
-            
+
             tablesJson["tables"] = tempArray;
 
             fmt::print("Creating model index...\n");
@@ -197,10 +197,12 @@ bool createModel(const std::string &filename, Credentials &credentials,
             std::string result = env.render(templateString, tableJson);
 
             std::ofstream file(std::string(directoryPath) + "/models/"
-                               + tableJson["name_const"].get<std::string>() + ".js");
+                               + tableJson["name_const"].get<std::string>()
+                               + ".js");
             if (!file.is_open()) {
                 std::cerr << "Error: No se pudo abrir el archivo de salida "
-                                 + tableJson["name_const"].get<std::string>() + ".js'"
+                                 + tableJson["name_const"].get<std::string>()
+                                 + ".js'"
                           << std::endl;
             }
             file << result;
@@ -215,8 +217,9 @@ bool createModel(const std::string &filename, Credentials &credentials,
 
         std::ofstream file(std::string(directoryPath) + "/models/index.js");
         if (!file.is_open()) {
-            std::cerr << "Error: No se pudo abrir el archivo de salida 'index.js'"
-                      << std::endl;
+            std::cerr
+                << "Error: No se pudo abrir el archivo de salida 'index.js'"
+                << std::endl;
         }
         file << indexResult;
         file.close();
@@ -242,13 +245,17 @@ bool createController(std::vector<Table> &tables, const char *directoryPath) {
         // Leer la plantilla desde el archivo
         std::ifstream template_file("./inja_templates/controllers.inja");
         if (!template_file.is_open()) {
-            fmt::print("Error: No se pudo abrir el archivo de plantilla controllers.inja\n");
+            fmt::print(
+                "Error: No se pudo abrir el archivo de plantilla "
+                "controllers.inja\n");
         }
         std::string templateString(
             (std::istreambuf_iterator<char>(template_file)),
             std::istreambuf_iterator<char>());
         if (templateString.empty()) {
-            fmt::print("Error: La plantilla está vacía o no se pudo leer correctamente\n");
+            fmt::print(
+                "Error: La plantilla está vacía o no se pudo leer "
+                "correctamente\n");
         }
 
         auto tablesToJson = [&tables]() {
@@ -281,10 +288,12 @@ bool createController(std::vector<Table> &tables, const char *directoryPath) {
             // fmt::print("{}", result);
 
             std::ofstream file(std::string(directoryPath) + "/controllers/"
-                               + tableJson["name_const"].get<std::string>() + "Controller.js");
+                               + tableJson["name_const"].get<std::string>()
+                               + "Controller.js");
             if (!file.is_open()) {
                 std::cerr << "Error: No se pudo abrir el archivo de salida "
-                                 + tableJson["name_const"].get<std::string>() + "Controller.js'"
+                                 + tableJson["name_const"].get<std::string>()
+                                 + "Controller.js'"
                           << std::endl;
             }
             file << result;
@@ -312,13 +321,17 @@ bool createRoute(std::vector<Table> &tables, const char *directoryPath) {
         // Leer la plantilla desde el archivo
         std::ifstream template_file("./inja_templates/routes.inja");
         if (!template_file.is_open()) {
-            fmt::print("Error: No se pudo abrir el archivo de plantilla routes.inja\n");
+            fmt::print(
+                "Error: No se pudo abrir el archivo de plantilla "
+                "routes.inja\n");
         }
         std::string templateString(
             (std::istreambuf_iterator<char>(template_file)),
             std::istreambuf_iterator<char>());
         if (templateString.empty()) {
-            fmt::print("Error: La plantilla está vacía o no se pudo leer correctamente\n");
+            fmt::print(
+                "Error: La plantilla está vacía o no se pudo leer "
+                "correctamente\n");
         }
         std::ifstream templateIndex_file("./inja_templates/routesIndex.inja");
         if (!templateIndex_file.is_open()) {
@@ -363,10 +376,12 @@ bool createRoute(std::vector<Table> &tables, const char *directoryPath) {
             // fmt::print("{}", result);
 
             std::ofstream file(std::string(directoryPath) + "/routes/"
-                               + tableJson["name_const"].get<std::string>() + "Routes.js");
+                               + tableJson["name_const"].get<std::string>()
+                               + "Routes.js");
             if (!file.is_open()) {
                 std::cerr << "Error: No se pudo abrir el archivo de salida "
-                                 + tableJson["name_const"].get<std::string>() + "Routes.js'"
+                                 + tableJson["name_const"].get<std::string>()
+                                 + "Routes.js'"
                           << std::endl;
             }
             file << result;
@@ -381,8 +396,9 @@ bool createRoute(std::vector<Table> &tables, const char *directoryPath) {
 
         std::ofstream file(std::string(directoryPath) + "/routes/index.js");
         if (!file.is_open()) {
-            std::cerr << "Error: No se pudo abrir el archivo de salida 'index.js'"
-                      << std::endl;
+            std::cerr
+                << "Error: No se pudo abrir el archivo de salida 'index.js'"
+                << std::endl;
         }
         file << indexResult;
         file.close();
@@ -406,8 +422,8 @@ int main() {
     std::vector<Table> tables = std::vector<Table>();
 
     // Request directory
-    // const char *directoryPath = "/Users/lecav/Programs/Tesis/test-backend";
-    const char *directoryPath = "G:/programs/test-backend";
+    const char *directoryPath = "/Users/lecav/Programs/Tesis/test-backend";
+    // const char *directoryPath = "G:/programs/test-backend";
 
     // Request credentials
     if (!readCredentials(credentialsFile, credentials)) {

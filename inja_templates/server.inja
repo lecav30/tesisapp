@@ -1,0 +1,20 @@
+const express = require('express');
+const { sequelize } = require('./models'); // Importa la instancia de Sequelize con los modelos
+
+const app = express();
+app.use(express.json());
+
+// Importar y usar las rutas consolidadas desde el archivo index.js
+const routes = require('./routes');
+app.use('/api', routes); // Prefijo '/api' para todas las rutas
+
+// Sincronizar modelos
+sequelize.sync().then(() => {
+  console.log('Database & tables created!');
+});
+
+// Inicia el servidor
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

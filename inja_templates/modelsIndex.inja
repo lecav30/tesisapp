@@ -8,7 +8,7 @@ const sequelize = new Sequelize('{{ credentials.dbname }}', '{{ credentials.user
 
 // Cargar modelos
 {% for table in tables %}
-const {{ table.name }} = require('./{{table.name_const }}')(sequelize);
+const {{ table.name }} = require('./{{table.name }}')(sequelize);
 {% endfor %}
 
 // Exportar los modelos y la instancia de Sequelize

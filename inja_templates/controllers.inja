@@ -1,4 +1,4 @@
-const { {{ name }} } = require('../models/{{name_const}}'); // Importa los modelos
+const { {{ name }} } = require('../models'); // Importa los modelos
 
 // Crear un nuevo {{ name }}
 exports.create{{ name }} = async (req, res) => {
