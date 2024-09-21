@@ -127,5 +127,6 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "*.ipp": "cpp"
-    }
+    },
+    "C_Cpp.default.compilerPath": "opt/usr/bin/clang++"
 }
